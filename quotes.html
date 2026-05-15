@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>명언 모음</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: #0f0f1a;
+      color: #fff;
+      font-family: 'Georgia', serif;
+      padding: 24px;
+    }
+
+    h1 {
+      font-size: 1rem;
+      letter-spacing: 4px;
+      text-transform: uppercase;
+      color: #888;
+      margin-bottom: 48px;
+    }
+
+    .card {
+      max-width: 680px;
+      width: 100%;
+      background: #1a1a2e;
+      border-left: 4px solid #e8b86d;
+      border-radius: 4px;
+      padding: 40px 48px;
+      position: relative;
+      min-height: 200px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      transition: opacity 0.4s ease;
+    }
+
+    .card.fade {
+      opacity: 0;
+    }
+
+    .quote-mark {
+      font-size: 5rem;
+      color: #e8b86d;
+      line-height: 0.6;
+      margin-bottom: 16px;
+      font-family: 'Georgia', serif;
+      opacity: 0.6;
+    }
+
+    .quote-text {
+      font-size: 1.25rem;
+      line-height: 1.8;
+      color: #e8e8e8;
+      margin-bottom: 24px;
+    }
+
+    .quote-author {
+      font-size: 0.95rem;
+      color: #e8b86d;
+      text-align: right;
+      font-style: italic;
+    }
+
+    .quote-author::before {
+      content: '— ';
+    }
+
+    .controls {
+      display: flex;
+      gap: 12px;
+      margin-top: 32px;
+    }
+
+    button {
+      padding: 7px 16px;
+      border: 1px solid #e8b86d;
+      background: transparent;
+      color: #e8b86d;
+      font-size: 0.8rem;
+      border-radius: 4px;
+      cursor: pointer;
+      letter-spacing: 1px;
+      transition: background 0.2s, color 0.2s;
+    }
+
+    button:hover {
+      background: #e8b86d;
+      color: #0f0f1a;
+    }
+
+    .counter {
+      margin-top: 20px;
+      font-size: 0.8rem;
+      color: #555;
+      letter-spacing: 2px;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Famous Quotes</h1>
+
+  <div class="card" id="card">
+    <div class="quote-mark">"</div>
+    <p class="quote-text" id="quoteText"></p>
+    <p class="quote-author" id="quoteAuthor"></p>
+  </div>
+
+  <div class="controls">
+    <button onclick="changeQuote(-1)">◀ 이전</button>
+    <button onclick="changeQuote(1)">다음 ▶</button>
+    <button onclick="randomQuote()">랜덤</button>
+  </div>
+
+  <div class="counter" id="counter"></div>
+
+  <script>
+    const quotes = [
+      { text: "인생은 자전거를 타는 것과 같다. 균형을 잡으려면 계속 움직여야 한다.", author: "알베르트 아인슈타인" },
+      { text: "성공은 열정을 잃지 않고 실패에서 실패로 걸어가는 것이다.", author: "윈스턴 처칠" },
+      { text: "당신이 할 수 있다고 생각하든, 할 수 없다고 생각하든, 당신의 생각이 맞다.", author: "헨리 포드" },
+      { text: "천 리 길도 한 걸음부터.", author: "노자" },
+      { text: "오늘 할 수 있는 일을 내일로 미루지 마라.", author: "벤자민 프랭클린" },
+      { text: "나는 실패한 것이 아니다. 작동하지 않는 방법 1만 가지를 발견한 것이다.", author: "토마스 에디슨" },
+      { text: "가장 어두운 밤도 끝나고, 태양은 다시 뜰 것이다.", author: "빅토르 위고" },
+      { text: "행복은 당신이 생각하는 것, 말하는 것, 행동하는 것이 조화를 이룰 때 찾아온다.", author: "마하트마 간디" },
+      { text: "두려움은 꿈을 죽이는 자이다.", author: "Frank Herbert" },
+      { text: "지식에 투자하는 것이 항상 최고의 이자를 낸다.", author: "벤자민 프랭클린" },
+      { text: "당신의 시간은 한정되어 있다. 다른 사람의 삶을 사느라 낭비하지 마라.", author: "스티브 잡스" },
+      { text: "우리가 두려워해야 할 것은 두려움 그 자체뿐이다.", author: "프랭클린 루스벨트" },
+    ];
+
+    let current = 0;
+    const card = document.getElementById('card');
+
+    function render(index) {
+      const q = quotes[index];
+      document.getElementById('quoteText').textContent = q.text;
+      document.getElementById('quoteAuthor').textContent = q.author;
+      document.getElementById('counter').textContent = `${index + 1} / ${quotes.length}`;
+    }
+
+    function changeQuote(dir) {
+      card.classList.add('fade');
+      setTimeout(() => {
+        current = (current + dir + quotes.length) % quotes.length;
+        render(current);
+        card.classList.remove('fade');
+      }, 400);
+    }
+
+    function randomQuote() {
+      card.classList.add('fade');
+      setTimeout(() => {
+        let next;
+        do { next = Math.floor(Math.random() * quotes.length); } while (next === current);
+        current = next;
+        render(current);
+        card.classList.remove('fade');
+      }, 400);
+    }
+
+    render(current);
+  </script>
+</body>
+</html>

@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>글로벌 주식 시장</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #0d1117;
+      color: #e6edf3;
+      font-family: 'Malgun Gothic', '맑은 고딕', sans-serif;
+      min-height: 100vh;
+    }
+
+    header {
+      background: #161b22;
+      border-bottom: 1px solid #30363d;
+      padding: 16px 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    header h1 { font-size: 1.2rem; font-weight: bold; color: #58a6ff; letter-spacing: 1px; }
+    #clock { font-size: 0.85rem; color: #8b949e; }
+
+    .tabs {
+      display: flex;
+      padding: 0 32px;
+      background: #161b22;
+      border-bottom: 1px solid #30363d;
+    }
+
+    .tab {
+      padding: 12px 24px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      color: #8b949e;
+      border-bottom: 2px solid transparent;
+      transition: color 0.2s, border-color 0.2s;
+    }
+
+    .tab.active { color: #58a6ff; border-bottom-color: #58a6ff; }
+    .tab:hover { color: #e6edf3; }
+
+    .content { padding: 32px; max-width: 1100px; margin: 0 auto; }
+
+    .market-section { display: none; }
+    .market-section.active { display: block; }
+
+    .section-title {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      color: #8b949e;
+      margin-bottom: 16px;
+    }
+
+    .index-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 16px;
+      margin-bottom: 32px;
+    }
+
+    .index-card {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      padding: 20px;
+      transition: border-color 0.2s;
+    }
+
+    .index-card:hover { border-color: #58a6ff; }
+    .index-name { font-size: 0.8rem; color: #8b949e; margin-bottom: 8px; }
+    .index-value { font-size: 1.6rem; font-weight: bold; margin-bottom: 4px; font-variant-numeric: tabular-nums; }
+    .index-change { font-size: 0.85rem; font-variant-numeric: tabular-nums; }
+
+    .up   { color: #3fb950; }
+    .down { color: #f85149; }
+    .flat { color: #8b949e; }
+
+    .table-wrap {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+
+    thead th {
+      background: #21262d;
+      padding: 12px 16px;
+      text-align: left;
+      color: #8b949e;
+      font-weight: normal;
+      font-size: 0.8rem;
+      letter-spacing: 0.5px;
+    }
+
+    thead th.num { text-align: right; }
+
+    tbody tr { border-top: 1px solid #21262d; transition: background 0.15s; }
+    tbody tr:hover { background: #1c2128; }
+    tbody td { padding: 11px 16px; color: #e6edf3; }
+    tbody td.num { text-align: right; font-variant-numeric: tabular-nums; }
+
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 0.72rem;
+      background: #21262d;
+      color: #8b949e;
+    }
+
+    .update-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 0.75rem;
+      color: #8b949e;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .pulse {
+      display: inline-block;
+      width: 6px; height: 6px;
+      background: #3fb950;
+      border-radius: 50%;
+      margin-right: 6px;
+      animation: pulse 2s infinite;
+      vertical-align: middle;
+    }
+
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+    .loading {
+      text-align: center;
+      padding: 60px;
+      color: #8b949e;
+      font-size: 0.9rem;
+    }
+
+    .spinner {
+      display: inline-block;
+      width: 24px; height: 24px;
+      border: 2px solid #30363d;
+      border-top-color: #58a6ff;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin-bottom: 12px;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .error-msg {
+      background: #1f1117;
+      border: 1px solid #6e2b2b;
+      border-radius: 8px;
+      padding: 16px 20px;
+      color: #f85149;
+      font-size: 0.85rem;
+      margin-bottom: 16px;
+    }
+
+    .refresh-btn {
+      background: transparent;
+      border: 1px solid #30363d;
+      color: #8b949e;
+      padding: 4px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.78rem;
+      transition: border-color 0.2s, color 0.2s;
+    }
+
+    .refresh-btn:hover { border-color: #58a6ff; color: #58a6ff; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>🌐 글로벌 주식 시장</h1>
+  <span id="clock"></span>
+</header>
+
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('kr')">🇰🇷 한국</div>
+  <div class="tab" onclick="switchTab('us')">🇺🇸 미국</div>
+  <div class="tab" onclick="switchTab('de')">🇩🇪 독일</div>
+</div>
+
+<div class="content">
+  <div class="update-bar">
+    <div><span class="pulse"></span>Yahoo Finance 실시간 데이터 · 30초마다 갱신 · <span id="lastUpdate">불러오는 중...</span></div>
+    <button class="refresh-btn" onclick="fetchAll()">⟳ 새로고침</button>
+  </div>
+
+  <div id="tab-kr" class="market-section active">
+    <p class="section-title">주요 지수</p>
+    <div class="index-grid" id="idx-kr"><div class="loading"><div class="spinner"></div><br>불러오는 중...</div></div>
+    <p class="section-title">주요 종목</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>종목명</th><th>시장</th>
+          <th class="num">현재가 (₩)</th><th class="num">전일비</th><th class="num">등락률</th><th class="num">거래량</th>
+        </tr></thead>
+        <tbody id="tbl-kr"><tr><td colspan="6" class="loading">불러오는 중...</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div id="tab-us" class="market-section">
+    <p class="section-title">주요 지수</p>
+    <div class="index-grid" id="idx-us"><div class="loading"><div class="spinner"></div><br>불러오는 중...</div></div>
+    <p class="section-title">주요 종목</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>종목명</th><th>섹터</th>
+          <th class="num">현재가 ($)</th><th class="num">전일비</th><th class="num">등락률</th><th class="num">거래량</th>
+        </tr></thead>
+        <tbody id="tbl-us"><tr><td colspan="6" class="loading">불러오는 중...</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div id="tab-de" class="market-section">
+    <p class="section-title">주요 지수</p>
+    <div class="index-grid" id="idx-de"><div class="loading"><div class="spinner"></div><br>불러오는 중...</div></div>
+    <p class="section-title">주요 종목</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>종목명</th><th>섹터</th>
+          <th class="num">현재가 (€)</th><th class="num">전일비</th><th class="num">등락률</th><th class="num">거래량</th>
+        </tr></thead>
+        <tbody id="tbl-de"><tr><td colspan="6" class="loading">불러오는 중...</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ── 심볼 정의 ────────────────────────────────────────────
+  const config = {
+    kr: {
+      indices: [
+        { symbol: '^KS11',  label: 'KOSPI' },
+        { symbol: '^KQ11',  label: 'KOSDAQ' },
+        { symbol: '^KS200', label: 'KOSPI 200' },
+      ],
+      stocks: [
+        { symbol: '005930.KS', label: '삼성전자',      badge: 'KOSPI'  },
+        { symbol: '000660.KS', label: 'SK하이닉스',    badge: 'KOSPI'  },
+        { symbol: '373220.KS', label: 'LG에너지솔루션', badge: 'KOSPI'  },
+        { symbol: '005380.KS', label: '현대차',        badge: 'KOSPI'  },
+        { symbol: '035420.KS', label: 'NAVER',         badge: 'KOSPI'  },
+        { symbol: '000270.KS', label: '기아',          badge: 'KOSPI'  },
+        { symbol: '035720.KS', label: '카카오',        badge: 'KOSPI'  },
+        { symbol: '068270.KS', label: '셀트리온',      badge: 'KOSPI'  },
+      ],
+    },
+    us: {
+      indices: [
+        { symbol: '^GSPC', label: 'S&P 500'     },
+        { symbol: '^DJI',  label: 'Dow Jones'   },
+        { symbol: '^IXIC', label: 'NASDAQ'      },
+        { symbol: '^RUT',  label: 'Russell 2000'},
+      ],
+      stocks: [
+        { symbol: 'AAPL',  label: 'Apple',      badge: '기술'   },
+        { symbol: 'MSFT',  label: 'Microsoft',  badge: '기술'   },
+        { symbol: 'NVDA',  label: 'NVIDIA',     badge: '반도체' },
+        { symbol: 'GOOGL', label: 'Alphabet',   badge: '기술'   },
+        { symbol: 'AMZN',  label: 'Amazon',     badge: '유통'   },
+        { symbol: 'TSLA',  label: 'Tesla',      badge: '자동차' },
+        { symbol: 'META',  label: 'Meta',       badge: '소셜'   },
+        { symbol: 'BRK-B', label: 'Berkshire',  badge: '금융'   },
+      ],
+    },
+    de: {
+      indices: [
+        { symbol: '^GDAXI',  label: 'DAX'    },
+        { symbol: '^MDAXI',  label: 'MDAX'   },
+        { symbol: '^TECDAX', label: 'TecDAX' },
+      ],
+      stocks: [
+        { symbol: 'SAP.DE',   label: 'SAP',              badge: '기술'   },
+        { symbol: 'SIE.DE',   label: 'Siemens',          badge: '산업'   },
+        { symbol: 'BAS.DE',   label: 'BASF',             badge: '화학'   },
+        { symbol: 'VOW3.DE',  label: 'Volkswagen',       badge: '자동차' },
+        { symbol: 'ALV.DE',   label: 'Allianz',          badge: '보험'   },
+        { symbol: 'DTE.DE',   label: 'Deutsche Telekom', badge: '통신'   },
+        { symbol: 'BMW.DE',   label: 'BMW',              badge: '자동차' },
+        { symbol: 'BAYN.DE',  label: 'Bayer',            badge: '제약'   },
+      ],
+    },
+  };
+
+  // ── 유틸 ─────────────────────────────────────────────────
+  const sign = n => n > 0 ? '+' : '';
+  const cls  = n => n > 0 ? 'up' : n < 0 ? 'down' : 'flat';
+
+  function fmt(n, dec = 2) {
+    if (n === null || n === undefined || isNaN(n)) return '—';
+    return n.toLocaleString('ko-KR', { minimumFractionDigits: dec, maximumFractionDigits: dec });
+  }
+
+  function fmtVol(n) {
+    if (!n) return '—';
+    if (n >= 1e8) return (n / 1e8).toFixed(1) + '억';
+    if (n >= 1e4) return (n / 1e4).toFixed(0) + '만';
+    return n.toLocaleString();
+  }
+
+  // ── Yahoo Finance fetch (CORS 프록시 경유) ───────────────
+  const PROXIES = [
+    url => `https://corsproxy.io/?${encodeURIComponent(url)}`,
+    url => `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`,
+  ];
+
+  async function fetchQuotes(symbols) {
+    // ^ 등 특수문자를 한 번만 인코딩 — 프록시가 전체 URL을 한 번 더 인코딩하므로 이중 인코딩 금지
+    const joined = symbols.join(',');
+    const yfUrl = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${joined}&fields=regularMarketPrice,regularMarketChange,regularMarketChangePercent,regularMarketVolume`;
+
+    let lastErr;
+    for (const makeUrl of PROXIES) {
+      try {
+        const proxyUrl = makeUrl(yfUrl);
+        const res = await fetch(proxyUrl);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        let body = await res.json();
+        if (typeof body.contents === 'string') body = JSON.parse(body.contents);
+        const results = body?.quoteResponse?.result ?? [];
+        if (results.length === 0) throw new Error('empty');
+        const map = {};
+        results.forEach(r => { map[r.symbol] = r; });
+        return map;
+      } catch (err) {
+        lastErr = err;
+        console.warn('proxy failed:', makeUrl(yfUrl), err.message);
+      }
+    }
+    throw lastErr;
+  }
+
+  // ── 렌더 ─────────────────────────────────────────────────
+  function renderIndices(market, quoteMap) {
+    const el = document.getElementById('idx-' + market);
+    const html = config[market].indices.map(({ symbol, label }) => {
+      const q = quoteMap[symbol];
+      if (!q) return `<div class="index-card"><div class="index-name">${label}</div><div style="color:#8b949e;font-size:.85rem">데이터 없음</div></div>`;
+      const v = q.regularMarketPrice;
+      const c = q.regularMarketChange;
+      const p = q.regularMarketChangePercent;
+      return `
+        <div class="index-card">
+          <div class="index-name">${label}</div>
+          <div class="index-value ${cls(c)}">${fmt(v)}</div>
+          <div class="index-change ${cls(c)}">${sign(c)}${fmt(c)} (${sign(p)}${fmt(p)}%)</div>
+        </div>`;
+    }).join('');
+    el.innerHTML = html;
+  }
+
+  function renderStocks(market, quoteMap) {
+    const el = document.getElementById('tbl-' + market);
+    const rows = config[market].stocks.map(({ symbol, label, badge }) => {
+      const q = quoteMap[symbol];
+      if (!q) return `<tr><td>${label}</td><td><span class="badge">${badge}</span></td><td colspan="4" class="num" style="color:#8b949e">데이터 없음</td></tr>`;
+      const v = q.regularMarketPrice;
+      const c = q.regularMarketChange;
+      const p = q.regularMarketChangePercent;
+      const vol = fmtVol(q.regularMarketVolume);
+      const dec = market === 'kr' ? 0 : 2;
+      return `
+        <tr>
+          <td><strong>${label}</strong></td>
+          <td><span class="badge">${badge}</span></td>
+          <td class="num">${fmt(v, dec)}</td>
+          <td class="num ${cls(c)}">${sign(c)}${fmt(c, dec)}</td>
+          <td class="num ${cls(p)}">${sign(p)}${fmt(p)}%</td>
+          <td class="num" style="color:#8b949e">${vol}</td>
+        </tr>`;
+    }).join('');
+    el.innerHTML = rows;
+  }
+
+  // ── 전체 fetch & 렌더 ────────────────────────────────────
+  async function fetchAll() {
+    const markets = ['kr', 'us', 'de'];
+    const allSymbols = markets.flatMap(m => [
+      ...config[m].indices.map(i => i.symbol),
+      ...config[m].stocks.map(s => s.symbol),
+    ]);
+
+    try {
+      const quoteMap = await fetchQuotes(allSymbols);
+      markets.forEach(m => {
+        renderIndices(m, quoteMap);
+        renderStocks(m, quoteMap);
+      });
+      document.getElementById('lastUpdate').textContent =
+        '최종 갱신: ' + new Date().toLocaleTimeString('ko-KR');
+    } catch (err) {
+      console.error(err);
+      document.getElementById('lastUpdate').textContent = '❌ 데이터 로드 실패 — ' + err.message;
+    }
+  }
+
+  // ── 탭 전환 ───────────────────────────────────────────────
+  function switchTab(market) {
+    const keys = ['kr', 'us', 'de'];
+    document.querySelectorAll('.tab').forEach((t, i) => t.classList.toggle('active', keys[i] === market));
+    document.querySelectorAll('.market-section').forEach(s => s.classList.remove('active'));
+    document.getElementById('tab-' + market).classList.add('active');
+  }
+
+  // ── 시계 & 자동갱신 ──────────────────────────────────────
+  function updateClock() {
+    document.getElementById('clock').textContent = new Date().toLocaleString('ko-KR');
+  }
+
+  fetchAll();
+  updateClock();
+  setInterval(fetchAll, 30000);
+  setInterval(updateClock, 1000);
+</script>
+</body>
+</html>
